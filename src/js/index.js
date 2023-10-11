@@ -9,32 +9,6 @@ function App() {
         $(".menu-count").innerText = `총 ${menuCount} 개`
     }
 
-    $("#espresso-menu-list").addEventListener("click", (e) => {
-
-        if (e.target.classList.contains("menu-edit-button")) {
-            const $menuName = e.target
-                .closest("li")
-                .querySelector(".menu-name")
-            const updatedMenuName = prompt(
-                "메뉴명을 수정하세요",
-                $menuName.innerText
-            )
-            $menuName.innerText = updatedMenuName
-        }
-
-        if (e.target.classList.contains("menu-remove-button")) {
-            if (confirm("정말 삭제하시겠습니까?")) {
-                const $menuName = e.target
-                    .closest("li").remove()
-            }
-            updateMenuCount()
-        }
-    })
-
-    $("#espresso-menu-form").addEventListener("submit", (e) => {
-        e.preventDefault();
-    });
-
     const addMenuName = () => {
         if ($("#espresso-menu-name").value === "") {
             alert("값을 입력해주세요.")
@@ -70,6 +44,25 @@ function App() {
         $("#espresso-menu-name").value = ""
     }
 
+    const updateMenuName = (e) => {
+        const $menuName = e.target
+            .closest("li")
+            .querySelector(".menu-name")
+        const updatedMenuName = prompt(
+            "메뉴명을 수정하세요",
+            $menuName.innerText
+        )
+        $menuName.innerText = updatedMenuName
+    }
+
+    const removeMenuName = (e) => {
+        if (confirm("정말 삭제하시겠습니까?")) {
+            const $menuName = e.target
+                .closest("li").remove()
+        }
+        updateMenuCount()
+    }
+
     $("#espresso-menu-submit-button").addEventListener("click", () => {
         addMenuName();
     })
@@ -80,6 +73,23 @@ function App() {
         }
         addMenuName()
     });
+
+    $("#espresso-menu-list").addEventListener("click", (e) => {
+
+        if (e.target.classList.contains("menu-edit-button")) {
+            updateMenuName(e)
+        }
+
+        if (e.target.classList.contains("menu-remove-button")) {
+            removeMenuName(e)
+        }
+    })
+
+    $("#espresso-menu-form").addEventListener("submit", (e) => {
+        e.preventDefault();
+    });
+
+
 }
 
 App();
