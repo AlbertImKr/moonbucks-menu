@@ -71,10 +71,12 @@ function App() {
 
     const removeMenuName = (e) => {
         if (confirm("정말 삭제하시겠습니까?")) {
-            const $menuName = e.target
-                .closest("li").remove()
+            const menuId = e.target.closest("li").dataset.menuId
+            menu.splice(menuId, 1)
+            store.setLocalStorage(menu)
+            e.target.closest("li").remove()
+            updateMenuCount()
         }
-        updateMenuCount()
     }
 
     $("#espresso-menu-submit-button").addEventListener("click", () => {
