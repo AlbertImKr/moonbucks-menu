@@ -2,7 +2,18 @@
 
 const $ = (selector) => document.querySelector(selector);
 
+const store = {
+    setLocalStorage(menu) {
+        localStorage.setItem("menu", JSON.stringify(menu))
+    },
+    getLocalStorage() {
+        localStorage.getItem("menu")
+    }
+}
+
 function App() {
+
+    let menu = store.getLocalStorage() || [];
 
     const updateMenuCount = () => {
         const menuCount = $("#espresso-menu-list").querySelectorAll("li").length
@@ -15,11 +26,13 @@ function App() {
             return
         }
 
-
         const espressoMenuName = $("#espresso-menu-name").value;
-        const menuItemTemplate = (espressoMenuName) => {
-            return `<li class="menu-list-item d-flex items-center py-2">
-                <span class="w-100 pl-2 menu-name">${espressoMenuName}</span>
+        menu.push({ name: espressoMenuName })
+        store.setLocalStorage(menu)
+        const template = menu
+            .map((item, index) => {
+                return `<li data-menu-id="${index}" class="menu-list-item d-flex items-center py-2">
+                <span class="w-100 pl-2 menu-name">${item.name}</span>
                 <button
                   type="button"
                   class="bg-gray-50 text-gray-500 text-sm mr-1 menu-edit-button"
@@ -33,18 +46,17 @@ function App() {
                   삭제
                 </button>
               </li>`
-        };
+            }).join("")
 
-        $("#espresso-menu-list").insertAdjacentHTML(
-            "beforeend",
-            menuItemTemplate(espressoMenuName)
-        );
+
+        $("#espresso-menu-list").innerHTML = template
 
         updateMenuCount()
         $("#espresso-menu-name").value = ""
     }
 
     const updateMenuName = (e) => {
+        const menuId = e.target.closest("li").dataset.menuId
         const $menuName = e.target
             .closest("li")
             .querySelector(".menu-name")
@@ -52,6 +64,8 @@ function App() {
             "메뉴명을 수정하세요",
             $menuName.innerText
         )
+        menu[menuId].name = updatedMenuName
+        store.setLocalStorage(menu)
         $menuName.innerText = updatedMenuName
     }
 
@@ -88,8 +102,6 @@ function App() {
     $("#espresso-menu-form").addEventListener("submit", (e) => {
         e.preventDefault();
     });
-
-
 }
 
 App();
