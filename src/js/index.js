@@ -1,15 +1,6 @@
+import { $ } from "./utils/dom.js";
+import { store } from "./store/index.js"
 
-
-const $ = (selector) => document.querySelector(selector);
-
-const store = {
-    setLocalStorage(menu) {
-        localStorage.setItem("menu", JSON.stringify(menu))
-    },
-    getLocalStorage() {
-        return JSON.parse(localStorage.getItem("menu"))
-    }
-}
 
 function App() {
     this.menu = {
@@ -28,26 +19,26 @@ function App() {
             this.menu = store.getLocalStorage();
             render();
         }
+        initEventListeners()
     }
 
     const render = () => {
         const template = this.menu[this.currentCategory]
             .map((item, index) => {
-                return `<li data-menu-id="${index}" class="menu-list-item d-flex items-center py-2">
-            <span class="w-100 pl-2 menu-name">${item.name}</span>
-            <button
-              type="button"
-              class="bg-gray-50 text-gray-500 text-sm mr-1 menu-edit-button"
-            >
-              수정
-            </button>
-            <button
-              type="button"
-              class="bg-gray-50 text-gray-500 text-sm menu-remove-button"
-            >
-              삭제
-            </button>
-          </li>`
+                return `
+                <li data-menu-id="${index}" class="${item.soldOut ? "sold-out" : ""} menu-list-item d-flex items-center py-2">
+                    <span class="w-100 pl-2 menu-name">${item.name}</span>
+                    <button type="button" class="bg-gray-50 text-gray-500 text-sm mr-1 menu-sold-out-button">
+                        품절
+                    </button>
+                    <button type="button" class="bg-gray-50 text-gray-500 text-sm mr-1 menu-edit-button">
+                        수정
+                    </button>
+                    <button type="button"   class="bg-gray-50 text-gray-500 text-sm menu-remove-button">
+                        삭제
+                    </button>
+                </li>
+                `
             }).join("")
 
 
@@ -59,8 +50,7 @@ function App() {
 
 
     const updateMenuCount = () => {
-        const menuCount = $("#menu-list").querySelectorAll("li").length
-        $(".menu-count").innerText = `총 ${menuCount} 개`
+        $(".menu-count").innerText = `총 ${this.menu[this.currentCategory].length} 개`
     }
 
     const addMenuName = () => {
@@ -99,41 +89,58 @@ function App() {
         }
     }
 
-    $("#menu-submit-button").addEventListener("click", () => {
-        addMenuName();
-    })
+    const soldOutMenu = (e) => {
+        const menuId = e.target.closest("li").dataset.menuId
+        this.menu[this.currentCategory][menuId].soldOut = !this.menu[this.currentCategory][menuId].soldOut
+        store.setLocalStorage(this.menu);
+        render()
+    }
 
-    $("#menu-name").addEventListener("keypress", (e) => {
-        if (e.key !== "Enter") {
-            return;
-        }
-        addMenuName()
-    });
-
-    $("#menu-list").addEventListener("click", (e) => {
-
-        if (e.target.classList.contains("menu-edit-button")) {
-            updateMenuName(e)
-        }
-
-        if (e.target.classList.contains("menu-remove-button")) {
-            removeMenuName(e)
-        }
-    })
-
-    $("#menu-form").addEventListener("submit", (e) => {
-        e.preventDefault();
-    });
-
-    $("nav").addEventListener("click", (e) => {
-        const isCategoryButton = e.target.classList.contains("cafe-category-name")
-        if (isCategoryButton){
-            const categoryName = e.target.dataset.categoryName
-            this.currentCategory = categoryName
-            $("#category-title").innerText = `${e.target.innerText} 메뉴 관리`
-            render()
-        }
-    })
+    const initEventListeners = () => {
+        $("#menu-submit-button").addEventListener("click", () => {
+            addMenuName();
+        })
+    
+        $("#menu-name").addEventListener("keypress", (e) => {
+            if (e.key !== "Enter") {
+                return;
+            }
+            addMenuName()
+        });
+    
+    
+    
+        $("#menu-list").addEventListener("click", (e) => {
+            if (e.target.classList.contains("menu-edit-button")) {
+                updateMenuName(e)
+                return
+            }
+    
+            if (e.target.classList.contains("menu-remove-button")) {
+                removeMenuName(e)
+                return
+            }
+    
+            if (e.target.classList.contains("menu-sold-out-button")) {
+                soldOutMenu(e);
+                return
+            }
+        })
+    
+        $("#menu-form").addEventListener("submit", (e) => {
+            e.preventDefault();
+        });
+    
+        $("nav").addEventListener("click", (e) => {
+            const isCategoryButton = e.target.classList.contains("cafe-category-name")
+            if (isCategoryButton) {
+                const categoryName = e.target.dataset.categoryName
+                this.currentCategory = categoryName
+                $("#category-title").innerText = `${e.target.innerText} 메뉴 관리`
+                render()
+            }
+        })
+    }
 }
 
 const app = new App();
