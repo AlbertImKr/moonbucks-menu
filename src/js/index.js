@@ -1,6 +1,55 @@
 import { $ } from "./utils/dom.js";
 import { store } from "./store/index.js"
 
+const BASE_URL = "http://localhost:3000/api"
+
+const MenuApi = {
+    async getAllMenuByCategory(category) {
+        const response = await fetch(`${BASE_URL}/category/${category}/menu`)
+        return response.json()
+    },
+    async createMenu(category,name) {
+        const response = await fetch(`${BASE_URL}/category/${category}/menu/`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ name }),
+        });
+        if (!response.ok){
+            console.error("에러가 발생했습니다.")
+        }
+    },
+    async updateMenu(category,name,menuId){
+        const response = await fetch(`${BASE_URL}/category/${category}/menu/${menuId}`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ name }),
+        });
+        if (!response.ok){
+            console.error("에러가 발생했습니다.")
+        }
+        return response.json()
+    },
+    async toggleSoldOutMenu(category,menuId){
+        const response = await fetch(`${BASE_URL}/category/${category}/menu/${menuId}/soldout`,{
+            method: "PUT"
+        })
+        if (!response.ok){
+            console.error("에러가 발생했습니다.")
+        }
+    },
+    async deleteMenu(category,menuId){
+        const response = await fetch(`${BASE_URL}/category/${category}/menu/${menuId}`,{
+            method: "DELETE"
+        })
+        if (!response.ok){
+            console.error("에러가 발생했습니다.")
+        }
+    }
+}
 
 function App() {
     this.menu = {
@@ -14,11 +63,9 @@ function App() {
 
     this.currentCategory = 'espresso'
 
-    this.init = () => {
-        if (store.getLocalStorage()) {
-            this.menu = store.getLocalStorage();
-            render();
-        }
+    this.init = async () => {
+        this.menu[this.currentCategory] = await MenuApi.getAllMenuByCategory(this.currentCategory)
+        render();
         initEventListeners()
     }
 
@@ -26,7 +73,7 @@ function App() {
         const template = this.menu[this.currentCategory]
             .map((item, index) => {
                 return `
-                <li data-menu-id="${index}" class="${item.soldOut ? "sold-out" : ""} menu-list-item d-flex items-center py-2">
+                <li data-menu-id="${item.id}" class="${item.isSoldOut ? "sold-out" : ""} menu-list-item d-flex items-center py-2">
                     <span class="w-100 pl-2 menu-name">${item.name}</span>
                     <button type="button" class="bg-gray-50 text-gray-500 text-sm mr-1 menu-sold-out-button">
                         품절
@@ -53,20 +100,21 @@ function App() {
         $(".menu-count").innerText = `총 ${this.menu[this.currentCategory].length} 개`
     }
 
-    const addMenuName = () => {
+    const addMenuName = async () => {
         if ($("#menu-name").value === "") {
             alert("값을 입력해주세요.")
             return
         }
 
         const menuName = $("#menu-name").value;
-        this.menu[this.currentCategory].push({ name: menuName })
-        store.setLocalStorage(this.menu)
-        render()
+        
+        await MenuApi.createMenu(this.currentCategory,menuName)
+        this.menu[this.currentCategory] = await MenuApi.getAllMenuByCategory(this.currentCategory)
+        render();
         $("#menu-name").value = ""
     }
 
-    const updateMenuName = (e) => {
+    const updateMenuName = async (e) => {
         const menuId = e.target.closest("li").dataset.menuId
         const $menuName = e.target
             .closest("li")
@@ -75,24 +123,24 @@ function App() {
             "메뉴명을 수정하세요",
             $menuName.innerText
         )
-        this.menu[this.currentCategory][menuId].name = updatedMenuName
-        store.setLocalStorage(this.menu)
+        MenuApi.updateMenu(this.currentCategory,updatedMenuName,menuId)
+        this.menu[this.currentCategory] = await MenuApi.getAllMenuByCategory(this.currentCategory)
         render()
     }
 
-    const removeMenuName = (e) => {
+    const removeMenuName = async (e) => {
         if (confirm("정말 삭제하시겠습니까?")) {
             const menuId = e.target.closest("li").dataset.menuId
-            this.menu[this.currentCategory].splice(menuId, 1)
-            store.setLocalStorage(this.menu)
+            await MenuApi.deleteMenu(this.currentCategory,menuId)
+            this.menu[this.currentCategory] = await MenuApi.getAllMenuByCategory(this.currentCategory)
             render()
         }
     }
 
-    const soldOutMenu = (e) => {
+    const soldOutMenu = async (e) => {
         const menuId = e.target.closest("li").dataset.menuId
-        this.menu[this.currentCategory][menuId].soldOut = !this.menu[this.currentCategory][menuId].soldOut
-        store.setLocalStorage(this.menu);
+        await MenuApi.toggleSoldOutMenu(this.currentCategory,menuId)
+        this.menu[this.currentCategory] = await MenuApi.getAllMenuByCategory(this.currentCategory)
         render()
     }
 
@@ -100,43 +148,44 @@ function App() {
         $("#menu-submit-button").addEventListener("click", () => {
             addMenuName();
         })
-    
+
         $("#menu-name").addEventListener("keypress", (e) => {
             if (e.key !== "Enter") {
                 return;
             }
             addMenuName()
         });
-    
-    
-    
+
+
+
         $("#menu-list").addEventListener("click", (e) => {
             if (e.target.classList.contains("menu-edit-button")) {
                 updateMenuName(e)
                 return
             }
-    
+
             if (e.target.classList.contains("menu-remove-button")) {
                 removeMenuName(e)
                 return
             }
-    
+
             if (e.target.classList.contains("menu-sold-out-button")) {
                 soldOutMenu(e);
                 return
             }
         })
-    
+
         $("#menu-form").addEventListener("submit", (e) => {
             e.preventDefault();
         });
-    
-        $("nav").addEventListener("click", (e) => {
+
+        $("nav").addEventListener("click", async (e) => {
             const isCategoryButton = e.target.classList.contains("cafe-category-name")
             if (isCategoryButton) {
                 const categoryName = e.target.dataset.categoryName
                 this.currentCategory = categoryName
                 $("#category-title").innerText = `${e.target.innerText} 메뉴 관리`
+                this.menu[this.currentCategory] = await MenuApi.getAllMenuByCategory(this.currentCategory)
                 render()
             }
         })
